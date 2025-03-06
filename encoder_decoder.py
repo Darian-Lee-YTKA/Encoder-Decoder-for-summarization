@@ -13,6 +13,12 @@ class Encoder_decoder(nn.Module):
         # Since x and y are both english text, I think its fine for them to share embeddings
         self.embeddings = nn.Embedding(num_embeddings=vocab_size, embedding_dim = embed_dim, padding_idx = 0) # zero is our pad index. Always and forever 🕊️
         self.position_embedding_table = nn.Embedding(max_seq_len, embed_dim)
+
+        # description of the model params which we will use to save in our results
+        self.description = (
+            f"h_dim={h_dim}, embed_dim={embed_dim}, n_head={n_head}, "
+            f"n_layer={n_layer}, vocab_size={vocab_size}, max_seq_len={max_seq_len}"
+        )
     def forward(self, x, y):
         # where x is the src, and y is the tgt
         x = x.long().to_device()
