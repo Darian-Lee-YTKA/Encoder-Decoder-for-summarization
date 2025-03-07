@@ -59,11 +59,18 @@ class Summary_dataset(Dataset):
         for _, row in tqdm(df.iterrows(), total=len(df), desc="Encoding Data"):
             src_tokens = ast.literal_eval(row['src'])
             tgt_tokens = ast.literal_eval(row['tgt'])
-            
-            if counter >= 20:
-                break
+            if filename == "processed_data/final_df_train.csv":
+
+                # 🥺 the gpu's are full. I'm cpu'ing this monster. Im using a subset, please dont be mad 🥺
+                if counter >= 15000:
+                    break
+                else:
+                    counter += 1
             else:
-                counter +=1
+                if counter >= 8000:
+                    break
+                else:
+                    counter +=1
 
             encoder_input = [self.vocab.get(token, self.vocab["<UNK>"]) for token in src_tokens]
             self.encoder_inputs.append(torch.tensor(encoder_input))
@@ -124,7 +131,7 @@ val_dataset.encode_data(filename=val_file)
 test_dataset.encode_data(filename=test_file)
 
 train_loader = DataLoader(train_dataset, batch_size=32, collate_fn=collate_fn)
-val_loader = DataLoader(train_dataset, batch_size=32, collate_fn=collate_fn)
-test_loader = DataLoader(train_dataset, batch_size=32, collate_fn=collate_fn)
+val_loader = DataLoader(val_dataset, batch_size=32, collate_fn=collate_fn)
+test_loader = DataLoader(test_dataset, batch_size=32, collate_fn=collate_fn)
 
 
