@@ -1,5 +1,5 @@
 from Dataset import train_dataset, val_dataset, test_dataset, train_loader, val_loader, test_loader
-from encoder_decoder import Encoder_decoder
+from encoder_decoder import Encoder_decoder, device
 import torch
 from torch import nn
 import torch.optim as optim
@@ -8,7 +8,7 @@ from sklearn.metrics import f1_score
 import torch.nn.functional as F
 from tqdm import tqdm
 import os
-device = torch.device("mps" if torch.backends.mps.is_available() else "cpu")
+
 
 # parameters
 h_dim = 128
@@ -16,14 +16,15 @@ embed_dim = 128
 n_head = 4
 n_layer = 3
 vocab_size = len(train_dataset.vocab)
-max_seq_len = 300
+max_seq_len = 302
 
+print(train_dataset.vocab)
 
 
 # model
 model = Encoder_decoder(h_dim = h_dim, embed_dim=embed_dim, n_head=n_head, n_layer=n_layer, vocab_size=vocab_size, max_seq_len=max_seq_len)
 optimizer = torch.optim.AdamW(model.parameters(), lr=.0001)
-criterion = torch.nn.CrossEntropyLoss()
+criterion = torch.nn.CrossEntropyLoss(ignore_index=0) # ignore pad index
 
 # training loop
 def train_epoch(model, data_loader, optimizer, criterion, device):
@@ -38,9 +39,13 @@ def train_epoch(model, data_loader, optimizer, criterion, device):
 
         optimizer.zero_grad()
         output = model(x=encoder_input, y=decoder_input)
+        print(f"logits.shape: {output.shape}")
+        print(f"target.shape: {target.shape}")
+
         output = output.view(-1, output.size(-1))
         target = target.view(-1)
-        loss = criterion(output, target, ignore_index=0) # ignore pad
+
+        loss = criterion(output, target) # ignore pad
 
         total_loss += loss.sum().item()
         total_tokens += target.ne(0).sum().item()
@@ -68,7 +73,7 @@ def eval_model(model, data_loader, criterion, device):
             output = output.view(-1, output.size(-1))
             target = target.view(-1)
 
-            loss = criterion(output, target, ignore_index=0)  # ignore padding tokens
+            loss = criterion(output, target)  # ignore padding tokens
 
             total_loss += loss.sum().item()
             total_tokens += target.ne(0).sum().item()  # count non-padding tokens
@@ -238,7 +243,7 @@ test_results_file = 'results/test.results'
 
 
 model = Encoder_decoder(h_dim = h_dim, embed_dim=embed_dim, n_head=n_head, n_layer=n_layer, vocab_size=vocab_size, max_seq_len=max_seq_len)
-best_model = load_best_model(best_model, best_model_path)
+best_model = load_best_model(model, best_model_path)
 
 
 val_rouge = eval_rouge(model=best_model, data_loader=val_loader, criterion=criterion, device=device, output_file=val_results_file, description=model.description)

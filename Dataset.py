@@ -7,6 +7,7 @@ from collections import defaultdict
 from torch.utils.data import Dataset, DataLoader
 from tqdm import tqdm
 from torch.nn.utils.rnn import pad_sequence
+import ast
 
 class Summary_dataset(Dataset):
     def __init__(self):
@@ -21,9 +22,12 @@ class Summary_dataset(Dataset):
         df = pd.read_csv(filename)
         word_counts = defaultdict(int) # for setting unk tokens
         for _, row in tqdm(df.iterrows(), total=len(df), desc="Getting word counts"):
-            for token in row['src']:
+            src_tokens = ast.literal_eval(row['src'])
+            tgt_tokens = ast.literal_eval(row['tgt'])
+            
+            for token in src_tokens:
                 word_counts[token] += 1
-            for token in row['tgt']:
+            for token in tgt_tokens:
                 word_counts[token] += 1
 
         for token, count in tqdm(word_counts.items(), total=len(word_counts), desc="Building vocab"):
@@ -53,14 +57,17 @@ class Summary_dataset(Dataset):
         df = pd.read_csv(filename)
         counter = 0
         for _, row in tqdm(df.iterrows(), total=len(df), desc="Encoding Data"):
+            src_tokens = ast.literal_eval(row['src'])
+            tgt_tokens = ast.literal_eval(row['tgt'])
+            
             if counter >= 20:
                 break
             else:
                 counter +=1
 
-            encoder_input = [self.vocab.get(token, self.vocab["<UNK>"]) for token in row['src']]
+            encoder_input = [self.vocab.get(token, self.vocab["<UNK>"]) for token in src_tokens]
             self.encoder_inputs.append(torch.tensor(encoder_input))
-            decoder_input = [self.vocab.get(token, self.vocab["<UNK>"]) for token in row['tgt']]
+            decoder_input = [self.vocab.get(token, self.vocab["<UNK>"]) for token in tgt_tokens]
             decoder_input = [self.vocab["<START>"]] + decoder_input
             decoder_target = decoder_input[1:] + [self.vocab["<STOP>"]]
             self.decoder_inputs.append(torch.tensor(decoder_input))
