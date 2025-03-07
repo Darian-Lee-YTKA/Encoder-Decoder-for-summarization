@@ -1,5 +1,5 @@
 from Dataset import train_dataset, val_dataset, test_dataset, train_loader, val_loader, test_loader
-from encoder_decoder import Encoder_decoder, device
+from LSTM_encoder_decoder import LSTM_Encoder_decoder, device
 import torch
 from torch import nn
 import torch.optim as optim
@@ -9,10 +9,9 @@ import torch.nn.functional as F
 from tqdm import tqdm
 import os
 
-
 # parameters
 h_dim = 256
-embed_dim = 256
+embed_dim = 512
 n_head = 4
 n_layer = 3
 vocab_size = len(train_dataset.vocab)
@@ -20,8 +19,9 @@ max_seq_len = 302
 
 print(train_dataset.vocab)
 
+
 def load_best_model(model):
-    checkpoint_path = os.path.join("models", "best_model_round2.pth")
+    checkpoint_path = os.path.join("lstm_models", "best_model.pth")
     model.load_state_dict(torch.load(checkpoint_path))
     model.eval()
     print(f"Best model loaded from {checkpoint_path}")
@@ -29,11 +29,13 @@ def load_best_model(model):
 
 
 # model
-model = Encoder_decoder(h_dim = h_dim, embed_dim=embed_dim, n_head=n_head, n_layer=n_layer, vocab_size=vocab_size, max_seq_len=max_seq_len)
-model = load_best_model(model)
+model = LSTM_Encoder_decoder(h_dim=h_dim, embed_dim=embed_dim, n_head=n_head, n_layer=n_layer, vocab_size=vocab_size,
+                        max_seq_len=max_seq_len)
+#model = load_best_model(model)
 
 optimizer = torch.optim.AdamW(model.parameters(), lr=.0001)
-criterion = torch.nn.CrossEntropyLoss(ignore_index=0) # ignore pad index
+criterion = torch.nn.CrossEntropyLoss(ignore_index=0)  # ignore pad index
+
 
 # training loop
 def train_epoch(model, data_loader, optimizer, criterion, device):
@@ -55,11 +57,10 @@ def train_epoch(model, data_loader, optimizer, criterion, device):
         output = output.view(-1, output.size(-1))
         target = target.view(-1)
 
-        loss = criterion(output, target) # ignore pad
+        loss = criterion(output, target)  # ignore pad
 
         total_loss += loss.sum().item()
         total_tokens += target.ne(0).sum().item()
-
 
         loss.backward()
         optimizer.step()
@@ -91,6 +92,7 @@ def eval_model(model, data_loader, criterion, device):
     avg_loss = total_loss / total_tokens  # average loss per token
     return avg_loss
 
+
 def calculate_f1_for_all(target, sampled_output):
     # Flatten both tensors
     target_flattened = target.reshape(-1).cpu().numpy()  # Convert to numpy for sklearn
@@ -106,8 +108,9 @@ def calculate_f1_for_all(target, sampled_output):
 def eval_rouge(model, data_loader, criterion, device, output_file, description):
     print("Starting Eval Rouge")
     model.eval()
-    scorer = rouge_scorer.RougeScorer(['rouge1', 'rouge2', 'rougeL'],  # ROUGE-1 (unigrams), ROUGE-2 (bigrams), ROUGE-L (lcs)
-    )
+    scorer = rouge_scorer.RougeScorer(['rouge1', 'rouge2', 'rougeL'],
+                                      # ROUGE-1 (unigrams), ROUGE-2 (bigrams), ROUGE-L (lcs)
+                                      )
     total_rouge1 = 0
     total_rouge2 = 0
     total_rougeL = 0
@@ -129,10 +132,6 @@ def eval_rouge(model, data_loader, criterion, device, output_file, description):
             sampled_output = output.argmax(dim=-1)
             print("sampled output shape: ", sampled_output.shape)
 
-
-
-
-
             # convert token indices back to text
             predicted_texts = [decode_sequence(sampled_output[i]) for i in range(sampled_output.size(0))]
             target_texts = [decode_sequence(target[i]) for i in range(target.size(0))]
@@ -152,10 +151,7 @@ def eval_rouge(model, data_loader, criterion, device, output_file, description):
                 total_rougeL += scores['rougeL'].fmeasure
                 print("got past rouge")
 
-
-
                 total_tokens += 1  # we will use this to get average
-
 
             f1_macro, f1_micro = calculate_f1_for_all(target, sampled_output)
             total_f1_macro += f1_macro
@@ -167,8 +163,6 @@ def eval_rouge(model, data_loader, criterion, device, output_file, description):
     avg_f1_micro = total_f1_micro / total_tokens
     avg_f1_macro = total_f1_macro / total_tokens
 
-
-
     with open(output_file, 'a') as f:
         string = "\n\n=======  " + description + "  ======="
         f.write(string)
@@ -177,8 +171,6 @@ def eval_rouge(model, data_loader, criterion, device, output_file, description):
         f.write(f"avg_rougeL: {avg_rougeL}\n")
         f.write(f"avg_f1_micro: {avg_f1_micro}\n")
         f.write(f"avg_f1_macro: {avg_f1_macro}\n")
-
-
 
 
 def decode_sequence(token_indices):
@@ -191,14 +183,13 @@ def decode_sequence(token_indices):
     return ' '.join(decoded)
 
 
-def train_loop(model, train_loader, val_loader, optimizer, criterion, device, num_epochs=50):
+def train_loop(model, train_loader, val_loader, optimizer, criterion, device, num_epochs=10):
     print("we are in train loop")
-    checkpoint_dir = os.path.join(os.getcwd(), "models")
+    checkpoint_dir = os.path.join(os.getcwd(), "lstm_models")
 
     best_loss = float('inf')
     for epoch in range(1, num_epochs + 1):
         print(f"Epoch {epoch}/{num_epochs}")
-
 
         train_loss = train_epoch(model, train_loader, optimizer, criterion, device)
 
@@ -206,41 +197,38 @@ def train_loop(model, train_loader, val_loader, optimizer, criterion, device, nu
 
         print(f"Training Loss: {train_loss:.4f}, Validation Loss: {val_loss:.4f}")
 
-        model_dir = "models"
+        model_dir = "lstm_models"
         os.makedirs(model_dir, exist_ok=True)
         if val_loss < best_loss:
             best_loss = val_loss
-            model_save_path = os.path.join(model_dir, "best_model_round2.pth")
+            model_save_path = os.path.join(model_dir, "best_model.pth")
             torch.save(model.state_dict(), model_save_path)
             print(f"Model saved to {model_save_path} (Validation Loss Improved)")
-            
+
 
 def load_best_model_round_2(model):
-    checkpoint_path = os.path.join("models", "best_model_round2.pth")
+    checkpoint_path = os.path.join("lstm_models", "best_model.pth")
     model.load_state_dict(torch.load(checkpoint_path))
     model.eval()
     print(f"Best model loaded from {checkpoint_path}")
     return model
 
-#we already trained for 5 epoches
-train_loop(model, train_loader, val_loader, optimizer, criterion, device, num_epochs=30)
 
+# we already trained for 5 epoches
+train_loop(model, train_loader, val_loader, optimizer, criterion, device, num_epochs=50)
 
+os.makedirs('results_lstm', exist_ok=True)
+val_results_file = 'results_lstm/val_results.txt'
+test_results_file = 'results_lstm/test_results.txt'
 
-os.makedirs('results', exist_ok=True)
-val_results_file = 'results/val_results.txt'
-test_results_file = 'results/test_results.txt'
-
-
-
-
-#model = Encoder_decoder(h_dim = h_dim, embed_dim=embed_dim, n_head=n_head, n_layer=n_layer, vocab_size=vocab_size, max_seq_len=max_seq_len)
+# model = Encoder_decoder(h_dim = h_dim, embed_dim=embed_dim, n_head=n_head, n_layer=n_layer, vocab_size=vocab_size, max_seq_len=max_seq_len)
 best_model = load_best_model_round_2(model)
 
 best_model = load_best_model(model)
-val_rouge = eval_rouge(model=best_model, data_loader=val_loader, criterion=criterion, device=device, output_file=val_results_file, description=model.description)
+val_rouge = eval_rouge(model=best_model, data_loader=val_loader, criterion=criterion, device=device,
+                       output_file=val_results_file, description=model.description)
 print(f"Validation ROUGE Scores: {val_rouge}")
 
-
-test_rouge = eval_rouge(model=best_model, data_loader=test_loader, criterion=criterion, device=device, output_file=test_results_file, description=model.description)
+test_rouge = eval_rouge(model=best_model, data_loader=test_loader, criterion=criterion, device=device,
+                        output_file=test_results_file, description=model.description)
 print(f"Test ROUGE Scores: {test_rouge}")

@@ -62,12 +62,12 @@ class Summary_dataset(Dataset):
             if filename == "processed_data/final_df_train.csv":
 
                 # 🥺 the gpu's are full. I'm cpu'ing this monster. Im using a subset, please dont be mad 🥺
-                if counter >= 15000:
+                if counter >= 45000: # training on 45,000 split
                     break
                 else:
                     counter += 1
             else:
-                if counter >= 8000:
+                if counter >= 8000: # testing and valing on 8,000 split 
                     break
                 else:
                     counter +=1
