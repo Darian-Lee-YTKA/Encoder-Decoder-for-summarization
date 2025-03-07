@@ -243,7 +243,7 @@ test_results_file = 'results/test.results'
 
 
 model = Encoder_decoder(h_dim = h_dim, embed_dim=embed_dim, n_head=n_head, n_layer=n_layer, vocab_size=vocab_size, max_seq_len=max_seq_len)
-best_model = load_best_model(model, best_model_path)
+best_model = load_best_model(model)
 
 
 val_rouge = eval_rouge(model=best_model, data_loader=val_loader, criterion=criterion, device=device, output_file=val_results_file, description=model.description)
