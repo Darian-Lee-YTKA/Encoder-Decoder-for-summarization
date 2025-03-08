@@ -66,11 +66,7 @@ class Summary_dataset(Dataset):
                     break
                 else:
                     counter += 1
-            else:
-                if counter >= 8000: # testing and valing on 8,000 split 
-                    break
-                else:
-                    counter +=1
+            
 
             encoder_input = [self.vocab.get(token, self.vocab["<UNK>"]) for token in src_tokens]
             self.encoder_inputs.append(torch.tensor(encoder_input))

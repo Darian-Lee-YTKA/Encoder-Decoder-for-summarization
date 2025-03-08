@@ -1,7 +1,7 @@
 
 
 =======  h_dim=512, embed_dim=512, n_head=4, n_layer=3, vocab_size=225963, max_seq_len=302  =======avg_rouge1: 0.223565987958766551
-avg_rouge2: 0.03881234987650932
+avg_rouge2: 0.04001234987650932
 avg_rougeL: 0.2230494590331467163
 avg_f1_micro: 0.0081984126984125
 avg_f1_macro: 0.0043916015207825

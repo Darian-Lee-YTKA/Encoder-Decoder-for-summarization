@@ -8,17 +8,18 @@ avg_f1_macro: 0.0
 
 
 =======  h_dim=128, embed_dim=128, n_head=4, n_layer=3, vocab_size=225963, max_seq_len=302  =======avg_rouge1: 0.11956022963374717
-avg_rouge2: 0.0019354097563048555
+avg_rouge2: 0.00193540975630485
 avg_rougeL: 0.10116304200544068
 avg_f1_micro: 0.0020209473022732103
 avg_f1_macro: 4.608337081768067e-05
 
 
-=======  h_dim=256, embed_dim=256, n_head=4, n_layer=3, vocab_size=225963, max_seq_len=302  =======avg_rouge1: 0.23932508630795137
-avg_rouge2: 0.045713052646886048
-avg_rougeL: 0.21060826556454038
-avg_f1_micro: 0.01300367302796686
-avg_f1_macro: 0.00116734561935575855
+=======  h_dim=256, embed_dim=256, n_head=4, n_layer=3, vocab_size=225963, max_seq_len=302 
+=======avg_rouge1: 0.23834259091817218
+avg_rouge2: 0.04610256213385043
+avg_rougeL: 0.20824567920892315
+avg_f1_micro: 0.01321567340083421 
+avg_f1_macro: 0.00118826387720684
 
 
 
